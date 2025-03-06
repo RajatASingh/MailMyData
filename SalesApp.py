@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import io
 
 import smtplib
 from email.message import EmailMessage
@@ -8,6 +9,62 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+
+st.set_page_config(layout='wide')
+
+import streamlit as st
+
+
+import streamlit as st
+
+import streamlit as st
+
+st.markdown(
+    """
+    <style>
+        /* Sidebar background color */
+        [data-testid="stSidebar"] {
+            background-color: #789DBC !important; 
+        }
+
+        /* Main app background and font */
+        [data-testid="stAppViewContainer"] {
+            background-color: #FEF9F2 !important; 
+            font-family: "Roboto", sans-serif;
+        }
+
+        /* Change Streamlit top header background */
+        header[data-testid="stHeader"] {
+            background-color: #FEF9F2 !important; 
+            padding: 10px !important;
+        }
+
+        /* Change text color inside the header */
+        header[data-testid="stHeader"] * {
+            color: black !important;
+            font-weight: bold !important;
+        }
+
+        /* Change button background color to navy */
+        [data-testid="stButton"] button {
+            background-color: #789DBC !important;
+            color: white !important; /* Ensures text is visible */
+            border-radius: 8px !important;
+            padding: 8px 16px !important;
+        }
+
+        /* Change button hover effect */
+        [data-testid="stButton"] button:hover {
+            background-color: 789DBC !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+
 
 from streamlit_option_menu import option_menu 
 
@@ -47,20 +104,22 @@ def main_app():
         selected = option_menu("Mail Sales", ["Sales Register", "Sales Analysis", "Logout"], 
             icons=["file-earmark-plus", "bar-chart-line", "box-arrow-right"], menu_icon="cast", default_index=0)
 
-    st.title("📊 Sales Dashboard")
+    st.title("📊 Excel Distributor")
 
     if selected == "Sales Register":
         upload_file = st.file_uploader("Upload your sales file", type=["xlsx", "csv"])
         if upload_file:
             st.write("File uploaded successfully! ✅")
-            df = pd.read_excel(upload_file) if upload_file.name.endswith(".xlsx") else pd.read_csv(upload_file)
+            file_bytes = io.BytesIO(upload_file.getvalue())
+            df = pd.read_excel(file_bytes) if upload_file.name.endswith(".xlsx") else pd.read_csv(file_bytes)
+            st.session_state.df
 
             if st.button("Send Mail"):
                 msg = MIMEMultipart()
                 msg['Subject'] = 'Sales Analysis'
                 msg['From'] = st.session_state.email
-                msg['To'] = 'asusbrown99@gmail.com'
-                body = """Hello Brown_Fox /n/n Happy to share the file with you about your sales as on today"""
+                msg['To'] = 'priya.kamat@aarav.co'
+                body = """Hello Priya Tai kamat This is a testing mail do not say that you don't like it you have to like it."""
                
                 msg.attach(MIMEText(body, 'plain')) 
                 file_name = 'brown_foxSales.xlsx'
@@ -74,7 +133,7 @@ def main_app():
 
                 msg.attach(p)
                 text = msg.as_string() 
-  
+
 
                 try:
                     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
@@ -83,14 +142,28 @@ def main_app():
                         st.success("Mail sent successfully! 📩")
                 except Exception as e:
                     st.error(f"Failed to send email: {e}")
-            st.dataframe(df)
+            st.dataframe(df.head())
+            if "region" in df.columns:
+                fig = px.histogram(data_frame=df, x="region", text_auto=True , color= "region")
+                st.write(fig)
+            else:
+                st.error("Column 'Location' not found in the dataset.")
+
     elif selected == "Sales Analysis":
-        st.subheader("Sales Data Visualization")
+
         upload_file = st.file_uploader("Upload your sales file for analysis", type=["xlsx", "csv"], key="analysis")
         if upload_file:
-            df = pd.read_excel(upload_file) if upload_file.name.endswith(".xlsx") else pd.read_csv(upload_file)
-            if "Location" in df.columns:
-                fig = px.histogram(data_frame=df, x="Location", text_auto=True)
+            df = pd.read_excel(upload_file, engine='openpyxl') if upload_file.name.endswith(".xlsx") else pd.read_csv(upload_file)
+            
+            
+
+            if st.button("Send Mail"):
+                st.write("Mail has been send ✅😁")
+            
+            column_for_graph = df.columns.tolist()
+            select_column = st.selectbox('Select A column base on which you want to see sales' , options= column_for_graph)
+            if select_column in df.columns:
+                fig = px.histogram(data_frame=df, x= select_column, text_auto=True)
                 st.write(fig)
             else:
                 st.error("Column 'Location' not found in the dataset.")
